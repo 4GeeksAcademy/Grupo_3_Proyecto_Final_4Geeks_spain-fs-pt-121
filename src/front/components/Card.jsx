@@ -1,9 +1,49 @@
 import { BotonEditar } from "./Botoes.jsx";
 import { BotonEliminar } from "./Botoes.jsx";
+import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
 
 
 
-export default function CardGasto({ gasto, tipo, descripcion, monto, fecha }) {
+export default function CardGasto({ id, gasto, tipo, descripcion, monto, fecha }) {
+
+    const { store, dispatch } = useGlobalReducer()
+
+    const eliminarGasto = async () => {
+        console.log('entrado en la function', id);
+
+        await fetch(`https://playground.4geeks.com/contact/agendas/Radamis/contacts/${id}`, {
+            method: 'DELETE'
+        })
+            .then(
+                dispatch({
+                    type: "deleteGasto",
+                    payload: id
+                })
+            )
+            .catch(error => {
+                console.error("Error:", error);
+            });
+    }
+
+    const EditarGasto = async () => {
+        dispatch({
+            type: "gasto",
+            payload: { id, gasto, tipo, descripcion, monto, fecha }
+        })
+        await fetch(`https://playground.4geeks.com/contact/agendas/Radamis/contacts/${theId}`, {
+            method: 'put'
+        })
+            .then(
+                dispatch({
+                    type: "deleteGasto",
+                    payload: id
+                })
+            )
+            .catch(error => {
+                console.error("Error:", error);
+            });
+    }
+
     return (
         <div className="card">
             <div className="carDG">

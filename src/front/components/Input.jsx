@@ -1,26 +1,51 @@
 import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
 
 export default function Cuadro({ onSaved }) {
-  const { store, dispatch } = useGlobalReducer();
+    const { store, dispatch } = useGlobalReducer();
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    dispatch({ type: "addGasto" });
-    if (onSaved) onSaved();
-  }
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        console.log("Enviado!");
+    };
 
-  return (
-    <form className="cuerpo" onSubmit={handleSubmit}>
-      <div className="modalR">
-      <input className="dados" placeholder="Gasto" onChange={e => dispatch({type:"setGasto", payload:e.target.value})} />
-      <input placeholder="Tipo" onChange={e => dispatch({type:"setTipo", payload:e.target.value})} />
-      <input placeholder="Descripción" onChange={e => dispatch({type:"setDescripcion", payload:e.target.value})} />
-      <div className="GranaDataInp">
-      <input type="number" placeholder="Monto" onChange={e => dispatch({type:"setMonto", payload:e.target.value})} />
-      <input className="dataInp" type="date" onChange={e => dispatch({type:"setFecha", payload:e.target.value})} />
-      </div>
-      <button>Guardar</button>
-      </div>
-    </form>
-  );
+    function addGasto() {
+        const newGasto = {
+            "name": store.nombre,   
+            "phone": store.phone,
+            "email": store.email,
+            "address": store.address
+        }
+        fetch('https://playground.4geeks.com/contact/agendas/Radamis/contacts', {
+            method: 'POST',
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(newGasto)
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Respuesta del servidor:", data);
+                dispatch({ type: 'limpiarForm' })
+            })
+            .catch(error => {
+                console.error("Error:", error);
+            });
+
+        if (onSaved) onSaved();
+    }
+
+    return (
+        <form className="cuerpo" onSubmit={handleSubmit}>
+            <div className="modalR">
+                <input value={store.gasto} className="dados" placeholder="Gasto" onChange={e => dispatch({ type: "setGasto", payload: e.target.value })} />
+                <input value={store.tipo} placeholder="Tipo" onChange={e => dispatch({ type: "setTipo", payload: e.target.value })} />
+                <input value={store.descripcion} placeholder="Descripción" onChange={e => dispatch({ type: "setDescripcion", payload: e.target.value })} />
+                <div className="GranaDataInp">
+                    <input value={store.monto} type="number" placeholder="Monto" onChange={e => dispatch({ type: "setMonto", payload: e.target.value })} />
+                    <input value={store.fecha} className="dataInp" type="date" onChange={e => dispatch({ type: "setFecha", payload: e.target.value })} />
+                </div>
+                <button onClick={addGasto}>Guardar</button>
+            </div>
+        </form>
+    );
 }
