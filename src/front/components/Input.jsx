@@ -15,7 +15,7 @@ export default function Cuadro({ onSaved }) {
             "email": store.email,
             "address": store.address
         }
-        fetch('https://playground.4geeks.com/contact/agendas/Radamis/contacts', {
+        fetch('https://super-duper-space-adventure-4j9gjr5j496v2jr9r-3001.app.github.dev/gasto', {
             method: 'POST',
             headers: {
                 "Content-Type": "application/json"

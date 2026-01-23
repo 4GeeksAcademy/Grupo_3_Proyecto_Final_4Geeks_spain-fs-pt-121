@@ -28,6 +28,8 @@ export default function storeReducer(store, action = {}) {
       return { ...store, monto: action.payload };
     case "setFecha":
       return { ...store, fecha: action.payload };
+     case "setGastos":
+      return { ...store, gastos: action.payload };
 
     case "addGasto": {
       const nuevoGasto = {
