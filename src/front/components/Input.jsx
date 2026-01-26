@@ -25,6 +25,7 @@ export default function Cuadro({ onSaved }) {
             .then(data => {
                 console.log("Respuesta del servidor:", data);
                 dispatch({ type: 'limpiarForm' })
+                dispatch({type: 'addGasto', payload: data})
             })
             .catch(error => {
                 console.error("Error:", error);

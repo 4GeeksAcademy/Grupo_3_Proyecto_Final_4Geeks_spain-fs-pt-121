@@ -32,27 +32,17 @@ export default function storeReducer(store, action = {}) {
       return { ...store, gastos: action.payload };
 
     case "addGasto": {
-      const nuevoGasto = {
-        gasto: store.gasto,
-        tipo: store.tipo,
-        descripcion: store.descripcion,
-        monto: store.monto,
-        fecha: store.fecha,
-      };
-
+      
       return {
         ...store,
-        gastos: [...store.gastos, nuevoGasto],
+        gastos: [...store.gastos, action.payload],
 
-        gasto: "",
-        tipo: "",
-        descripcion: "",
-        monto: "",
-        fecha: "",
       };
     }
 
     case "deleteGasto":
+      console.log(action.payload, store.gastos[0].id);
+      
       return {
         ...store,
         gastos: store.gastos.filter((c) => c.id !== action.payload),

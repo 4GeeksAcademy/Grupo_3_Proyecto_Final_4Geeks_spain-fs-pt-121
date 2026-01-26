@@ -39,16 +39,17 @@ export default function CuadroEditar({ onSaved, id }) {
       "monto": store.monto,
       "fecha": store.fecha
     }
-    EditarGastos(editado, id).then(data => {
+    //Acá hago el PUT//
+    EditarGastos(editado).then(data => {
       console.log("Respuesta del servidor:", data);
       dispatch({ type: 'limpiarForm' })
     })
 
     if (onSaved) onSaved();
 
+    //Acá hago el GET//
     ObtenerGastos().then(data => {
-      dispatch({
-        type: "setGastos",
+      dispatch({ type: "setGastos",
         payload: data
       });
     })
