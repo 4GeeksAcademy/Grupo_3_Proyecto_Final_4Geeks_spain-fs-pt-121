@@ -8,42 +8,7 @@ export default function CardGasto({ id, gasto, tipo, descripcion, monto, fecha }
 
     const { store, dispatch } = useGlobalReducer()
 
-    const eliminarGasto = async () => {
-        console.log('entrado en la function', id);
-
-        await fetch(`https://playground.4geeks.com/contact/agendas/Radamis/contacts/${id}`, {
-            method: 'DELETE'
-        })
-            .then(
-                dispatch({
-                    type: "deleteGasto",
-                    payload: id
-                })
-            )
-            .catch(error => {
-                console.error("Error:", error);
-            });
-    }
-
-    const EditarGasto = async () => {
-        dispatch({
-            type: "gasto",
-            payload: { id, gasto, tipo, descripcion, monto, fecha }
-        })
-        await fetch(`https://playground.4geeks.com/contact/agendas/Radamis/contacts/${theId}`, {
-            method: 'put'
-        })
-            .then(
-                dispatch({
-                    type: "deleteGasto",
-                    payload: id
-                })
-            )
-            .catch(error => {
-                console.error("Error:", error);
-            });
-    }
-
+    
     return (
         <div className="card">
             <div className="carDG">
@@ -61,7 +26,7 @@ export default function CardGasto({ id, gasto, tipo, descripcion, monto, fecha }
                     </div>
                 </div>
                 <div className="bot1">
-                    <BotonEditar />
+                    <BotonEditar onClick={() => setAberto(true)} />
                 </div>
                 <div className="bot2">
                     <BotonEliminar />

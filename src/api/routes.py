@@ -26,6 +26,7 @@ def get_gastos():
     gastos = Gasto.query.all()
     return jsonify([g.serialize() for g in gastos]), 200
 
+
 @api.route('/gasto/<int:gasto_id>', methods=['GET'])
 def get_gasto_id(gasto_id):
     gasto = Gasto.query.get(gasto_id)
@@ -48,6 +49,7 @@ def get_user_favoritos(user_id):
         "favoritos": favoritos
     }), 200
 
+
 @api.route('/user/<int:user_id>/favoritos/gasto/<int:gasto_id>', methods=['POST'])
 def add_favorito_gasto(user_id, gasto_id):
 
@@ -68,3 +70,57 @@ def add_favorito_gasto(user_id, gasto_id):
         return jsonify({"msg": "Esse gasto já está nos favoritos"}), 409
 
     return jsonify({"msg": "Gasto adicionado aos favoritos"}), 201
+
+
+@api.route('/gasto', methods=['POST'])
+def create_gasto():
+    body = request.get_json()
+
+    if body is None:
+        return jsonify({"error": "Body is empty"}), 400
+
+    nuevo = Gasto(
+        gasto=body.get("gasto"),
+        tipo=body.get("tipo"),
+        descripcion=body.get("descripcion"),
+        monto=body.get("monto"),
+        fecha=body.get("fecha")
+    )
+
+    db.session.add(nuevo)
+    db.session.commit()
+
+    return jsonify(nuevo.serialize()), 201
+
+
+@api.route('/gasto/<int:id>', methods=['DELETE'])
+def delete_gasto(id):
+    gasto = Gasto.query.get(id)
+
+    if gasto is None:
+        return jsonify({"error": "Gasto não encontrado"}), 404
+
+    db.session.delete(gasto)
+    db.session.commit()
+
+    return jsonify({"msg": "Gasto deletado com sucesso"}), 200
+
+
+@api.route('/gasto/<int:id>', methods=['PUT'])
+def update_gasto(id):
+    gasto = Gasto.query.get(id)
+
+    if gasto is None:
+        return jsonify({"error": "Gasto não encontrado"}), 404
+
+    body = request.get_json()
+
+    gasto.gasto = body.get("gasto", gasto.gasto)
+    gasto.tipo = body.get("tipo", gasto.tipo)
+    gasto.descripcion = body.get("descripcion", gasto.descripcion)
+    gasto.monto = body.get("monto", gasto.monto)
+    gasto.fecha = body.get("fecha", gasto.fecha)
+
+    db.session.commit()
+
+    return jsonify(gasto.serialize()), 200

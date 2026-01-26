@@ -38,7 +38,7 @@ export default function Cuadro({ onSaved }) {
       "fecha": store.fecha
     }
 
-    fetch(`https://playground.4geeks.com/contact/agendas/Radamis/contacts/${theId}`, {
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/gasto/${theId}`, {
       method: 'PUT',
       headers: {
         "Content-Type": "application/json"

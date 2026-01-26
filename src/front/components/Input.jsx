@@ -10,12 +10,13 @@ export default function Cuadro({ onSaved }) {
 
     function addGasto() {
         const newGasto = {
-            "name": store.nombre,   
-            "phone": store.phone,
-            "email": store.email,
-            "address": store.address
+            "gasto": store.gasto,   
+            "tipo": store.tipo,
+            "descripcion": store.descripcion,
+            "monto": store.monto,
+            "fecha": store.fecha
         }
-        fetch('https://super-duper-space-adventure-4j9gjr5j496v2jr9r-3001.app.github.dev/gasto', {
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/gasto`, {
             method: 'POST',
             headers: {
                 "Content-Type": "application/json"

@@ -95,6 +95,7 @@
   width: 800px;
   background: rgb(190, 235, 221);
   border: none;
+  margin-bottom: 5px;
 }
 
 .tipo1 {
@@ -183,4 +184,10 @@ body {
   background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url("https://img.pikbest.com/wp/202343/old-vintage-paper-texture-green-backdrop-capturing-the-charm-of-aged_9939901.jpg!f305cw");
   background-size: cover;
   background-repeat: no-repeat;
+}
+
+.bodyCards {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
