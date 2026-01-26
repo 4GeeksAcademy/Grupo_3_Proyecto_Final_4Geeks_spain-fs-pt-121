@@ -314,9 +314,6 @@ body {
 .fx-page .row .col-6:nth-child(6n + 6) .fx-currency:hover{
   border-color: rgba(6,95,70,.55);
   background: rgba(6,95,70,.10);
-}.navbar {
-    background: red;
-    height: 70px;
 }
 
 .texto-animado {
@@ -473,7 +470,6 @@ body {
   align-items: center;
 }
 
-
 .tituloR {
   text-align: center;
   margin-bottom: 15px;
@@ -494,12 +490,6 @@ body {
   margin-right: 20px;
   background: none;
   height: 1000px;
-}
-
-body {
-  background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url("https://img.pikbest.com/wp/202343/old-vintage-paper-texture-green-backdrop-capturing-the-charm-of-aged_9939901.jpg!f305cw");
-  background-size: cover;
-  background-repeat: no-repeat;
 }
 
 .bodyCards {

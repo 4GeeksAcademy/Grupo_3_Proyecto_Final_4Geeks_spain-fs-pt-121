@@ -40,7 +40,7 @@ export default function CuadroEditar({ onSaved, id }) {
       "fecha": store.fecha
     }
     //Acá hago el PUT//
-    EditarGastos(editado).then(data => {
+    EditarGastos(editado, id).then(data => {
       console.log("Respuesta del servidor:", data);
       dispatch({ type: 'limpiarForm' })
     })
