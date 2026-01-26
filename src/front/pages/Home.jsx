@@ -1,52 +1,59 @@
-import React, { useEffect } from "react"
-import rigoImageUrl from "../assets/img/rigo-baby.jpg";
-import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
+import { Link } from "react-router-dom";
+import { isLoggedIn } from "../services/auth";
 
 export const Home = () => {
+  const logged = isLoggedIn();
 
-	const { store, dispatch } = useGlobalReducer()
+  return (
+    <div className="container py-4">
+      <h1 className="app-title mb-1">Control Financiero</h1>
+      <p className="text-muted">
+        Gestiona tus finanzas de manera inteligente.
+      </p>
 
-	const loadMessage = async () => {
-		try {
-			const backendUrl = import.meta.env.VITE_BACKEND_URL
+      {!logged && (
+        <div className="alert alert-info">
+          Puedes ver la web, pero para usar funciones necesitas iniciar sesión.
+          <div className="mt-2 d-flex gap-2">
+            <Link to="/login" className="btn btn-primary btn-sm">Login</Link>
+            <Link to="/register" className="btn btn-outline-primary btn-sm">Registro</Link>
+          </div>
+        </div>
+      )}
 
-			if (!backendUrl) throw new Error("VITE_BACKEND_URL is not defined in .env file")
+      <div className="row g-3 mt-1">
+        <div className="col-12 col-md-6">
+          <div className="card app-card p-3">
+            <div className="text-muted small">Este mes</div>
+            <div className="fs-4 fw-bold">$2450.50</div>
+            <div className="text-muted">Gastos Totales</div>
+          </div>
+        </div>
 
-			const response = await fetch(backendUrl + "/api/hello")
-			const data = await response.json()
+        <div className="col-12 col-md-6">
+          <div className="card app-card p-3">
+            <div className="text-muted small">Acumulado</div>
+            <div className="fs-4 fw-bold">$1200.00</div>
+            <div className="text-muted">Ahorros</div>
+          </div>
+        </div>
 
-			if (response.ok) dispatch({ type: "set_hello", payload: data.message })
+        <div className="col-12 col-md-6">
+          <div className="card app-card p-3">
+            <div className="text-muted small">Puntuación</div>
+            <div className="fs-4 fw-bold">750</div>
+            <div className="text-muted">FinScore</div>
+          </div>
+        </div>
 
-			return data
-
-		} catch (error) {
-			if (error.message) throw new Error(
-				`Could not fetch the message from the backend.
-				Please check if the backend is running and the backend port is public.`
-			);
-		}
-
-	}
-
-	useEffect(() => {
-		loadMessage()
-	}, [])
-
-	return (
-		<div className="text-center mt-5">
-			<h1 className="display-4">Hello Rigo!!</h1>
-			<p className="lead">
-				<img src={rigoImageUrl} className="img-fluid rounded-circle mb-3" alt="Rigo Baby" />
-			</p>
-			<div className="alert alert-info">
-				{store.message ? (
-					<span>{store.message}</span>
-				) : (
-					<span className="text-danger">
-						Loading message from the backend (make sure your python 🐍 backend is running)...
-					</span>
-				)}
-			</div>
-		</div>
-	);
-}; 
+        <div className="col-12 col-md-6">
+          <div className="card app-card p-3">
+            <div className="text-muted small">Disponibles</div>
+            <div className="fs-4 fw-bold">150</div>
+            <div className="text-muted">Créditos</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
