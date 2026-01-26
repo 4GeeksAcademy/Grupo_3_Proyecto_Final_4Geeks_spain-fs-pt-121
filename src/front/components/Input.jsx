@@ -18,9 +18,7 @@ export default function Cuadro({ onSaved }) {
         }
         fetch(`${import.meta.env.VITE_BACKEND_URL}/api/gasto`, {
             method: 'POST',
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(newGasto)
         })
             .then(response => response.json())

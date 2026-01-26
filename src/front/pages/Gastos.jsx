@@ -5,23 +5,16 @@ import Cuadro from "../components/Input.jsx";
 import { A_Gastos } from "../components/Botoes.jsx";
 import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
 import CardGasto from "../components/Card.jsx";
+import {ObtenerGastos} from "../components/ApiGastos.jsx";
 
 export default function Gastos() {
   const [aberto, setAberto] = useState(false);
-
   const { store, dispatch } = useGlobalReducer();
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/gasto`)
-      .then(res => res.json())
-      .then(data => {
-        dispatch({
-          type: "setGastos",
-          payload: data
-        });
-      })
-      .catch(err => console.error(err));
-  }, []);
+    ObtenerGastos().then(data => { dispatch({ type: "setGastos",
+          payload: data }); })
+      }, []);
 
   return (
     <div className="paginaR">

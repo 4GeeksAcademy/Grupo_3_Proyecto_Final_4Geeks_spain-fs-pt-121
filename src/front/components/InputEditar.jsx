@@ -1,10 +1,12 @@
 import { useParams } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
 import { useEffect } from "react";
+import { ObtenerGastos, EditarGastos } from "./ApiGastos.jsx";
 
-export default function Cuadro({ onSaved }) {
+export default function CuadroEditar({ onSaved, id }) {
   const { store, dispatch } = useGlobalReducer();
-  const { theId } = useParams()
+  console.log(id);
+
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -16,7 +18,7 @@ export default function Cuadro({ onSaved }) {
       console.log(store.gastos);
 
       const gasto = store.gastos.find(
-        (c) => c.id === Number(theId)
+        (c) => c.id === Number(id)
       )
 
       if (gasto) {
@@ -27,7 +29,7 @@ export default function Cuadro({ onSaved }) {
         dispatch({ type: "setFecha", payload: gasto.fecha })
       }
     }
-  }, [store.gastos, theId])
+  }, [store.gastos])
 
   function saveGasto() {
     const editado = {
@@ -37,24 +39,20 @@ export default function Cuadro({ onSaved }) {
       "monto": store.monto,
       "fecha": store.fecha
     }
-
-    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/gasto/${theId}`, {
-      method: 'PUT',
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(editado)
+    EditarGastos(editado, id).then(data => {
+      console.log("Respuesta del servidor:", data);
+      dispatch({ type: 'limpiarForm' })
     })
-      .then(response => response.json())
-      .then(data => {
-        console.log("Respuesta del servidor:", data);
-        dispatch({ type: 'limpiarForm' })
-      })
-      .catch(error => {
-        console.error("Error:", error);
-      });
 
     if (onSaved) onSaved();
+
+    ObtenerGastos().then(data => {
+      dispatch({
+        type: "setGastos",
+        payload: data
+      });
+    })
+
   }
 
   return (
