@@ -6,6 +6,7 @@ import { A_Gastos } from "../components/Botoes.jsx";
 import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
 import CardGasto from "../components/Card.jsx";
 import {ObtenerGastos} from "../components/ApiGastos.jsx";
+import Busqueda from "../components/Busqueda.jsx";
 
 export default function Gastos() {
   const [aberto, setAberto] = useState(false);
@@ -20,6 +21,7 @@ export default function Gastos() {
     <div className="paginaR">
       <div className="Gastos">
         <h1 className="texto-animado">Mi Gastos</h1>
+        <Busqueda />
         <A_Gastos onClick={() => setAberto(true)} />
       </div>
       <Modal isOpen={aberto} onClose={() => setAberto(false)}>

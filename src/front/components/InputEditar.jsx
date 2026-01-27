@@ -8,11 +8,6 @@ export default function CuadroEditar({ onSaved, id }) {
   console.log(id);
 
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Enviado!");
-  };
-
   useEffect(() => {
     if (store.gastos.length > 0) {
       console.log(store.gastos);
@@ -31,7 +26,7 @@ export default function CuadroEditar({ onSaved, id }) {
     }
   }, [store.gastos])
 
-  function saveGasto() {
+  async function saveGasto() {
     const editado = {
       "gasto": store.gasto,
       "tipo": store.tipo,
@@ -43,21 +38,23 @@ export default function CuadroEditar({ onSaved, id }) {
     EditarGastos(editado, id).then(data => {
       console.log("Respuesta del servidor:", data);
       dispatch({ type: 'limpiarForm' })
-    })
-
-    if (onSaved) onSaved();
-
     //Acá hago el GET//
-    ObtenerGastos().then(data => {
-      dispatch({ type: "setGastos",
-        payload: data
-      });
+      ObtenerGastos().then(data => {
+        dispatch({
+          type: "setGastos",
+          payload: data
+        });
+        if (onSaved) onSaved();
+      })
+
     })
+
+
 
   }
 
   return (
-    <form className="cuerpo" onSubmit={handleSubmit}>
+    <form className="cuerpo">
       <div className="modalR">
         <input value={store.gasto} className="dados" placeholder="Gasto" onChange={e => dispatch({ type: "setGasto", payload: e.target.value })} />
         <input value={store.tipo} placeholder="Tipo" onChange={e => dispatch({ type: "setTipo", payload: e.target.value })} />
@@ -66,7 +63,7 @@ export default function CuadroEditar({ onSaved, id }) {
           <input value={store.monto} type="number" placeholder="Monto" onChange={e => dispatch({ type: "setMonto", payload: e.target.value })} />
           <input value={store.fecha} className="dataInp" type="date" onChange={e => dispatch({ type: "setFecha", payload: e.target.value })} />
         </div>
-        <button onClick={saveGasto}>Guardar</button>
+        <button type="button" onClick={saveGasto}>Guardar</button>
       </div>
     </form>
   );
