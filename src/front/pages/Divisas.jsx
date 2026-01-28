@@ -88,7 +88,7 @@ export const Divisas = () => {
   const badgeText = ratesState.loading ? "loading" : (ratesState.data?.source || "ok");
 
   return (
-    <div className="fx-page">
+    <div>
       <div className="container fx-container py-4">
       
         <div className="card fx-card border-0">

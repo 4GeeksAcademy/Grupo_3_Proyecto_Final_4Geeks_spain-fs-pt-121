@@ -5,7 +5,7 @@ import Cuadro from "../components/Input.jsx";
 import { A_Gastos } from "../components/Botoes.jsx";
 import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
 import CardGasto from "../components/Card.jsx";
-import {ObtenerGastos} from "../components/ApiGastos.jsx";
+import { ObtenerGastos } from "../components/ApiGastos.jsx";
 import Busqueda from "../components/Busqueda.jsx";
 
 export default function Gastos() {
@@ -13,9 +13,11 @@ export default function Gastos() {
   const { store, dispatch } = useGlobalReducer();
 
   useEffect(() => {
-    ObtenerGastos().then(data => { dispatch({ type: "setGastos",
-          payload: data }); })
-      }, []);
+    ObtenerGastos().then(data => {
+      dispatch({ type: "setGastos", payload: data });
+      dispatch({ type: "setGastosOriginales", payload: data });
+    })
+  }, []);
 
   return (
     <div className="paginaR">
