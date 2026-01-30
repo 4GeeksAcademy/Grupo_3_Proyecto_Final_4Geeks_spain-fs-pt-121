@@ -1,14 +1,30 @@
 import { apiPost } from "./api";
-import { saveSession } from "./auth";
+import { saveSession, logout } from "./auth";
 
 export async function login({ email, password }) {
+  
+  logout();
+
   const data = await apiPost("/api/auth/login", { email, password });
-  saveSession({ token: data.token, user: data.user });
+
+  if (!data?.token || !data?.user) {
+    throw new Error("Respuesta inválida del servidor (falta token o user).");
+  }
+
+  saveSession(data.token, data.user);
   return data;
 }
 
 export async function register({ email, username, password }) {
+  
+  logout();
+
   const data = await apiPost("/api/auth/register", { email, username, password });
-  saveSession({ token: data.token, user: data.user });
+
+  if (!data?.token || !data?.user) {
+    throw new Error("Respuesta inválida del servidor (falta token o user).");
+  }
+
+  saveSession(data.token, data.user);
   return data;
 }

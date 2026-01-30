@@ -1,5 +1,6 @@
 export const initialStore = () => ({
   gastos: [],
+  gastosOriginales: [],
   gasto: "",
   tipo: "",
   descripcion: "",
@@ -28,21 +29,21 @@ export default function storeReducer(store, action = {}) {
       return { ...store, monto: action.payload };
     case "setFecha":
       return { ...store, fecha: action.payload };
-     case "setGastos":
+    case "setGastos":
       return { ...store, gastos: action.payload };
+    case "setGastosOriginales":
+      return { ...store, gastosOriginales: action.payload };
 
     case "addGasto": {
-      
       return {
         ...store,
         gastos: [...store.gastos, action.payload],
-
       };
     }
 
     case "deleteGasto":
       console.log(action.payload, store.gastos[0].id);
-      
+
       return {
         ...store,
         gastos: store.gastos.filter((c) => c.id !== action.payload),

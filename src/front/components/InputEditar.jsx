@@ -1,73 +1,77 @@
-import { useParams } from "react-router-dom";
-import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
 import { useEffect } from "react";
-import { ObtenerGastos, EditarGastos } from "./ApiGastos.jsx";
+import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
+import { updateGasto } from "../services/gastos.js";
 
 export default function CuadroEditar({ onSaved, id }) {
   const { store, dispatch } = useGlobalReducer();
-  console.log(id);
-
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Enviado!");
-  };
 
   useEffect(() => {
-    if (store.gastos.length > 0) {
-      console.log(store.gastos);
-
-      const gasto = store.gastos.find(
-        (c) => c.id === Number(id)
-      )
-
-      if (gasto) {
-        dispatch({ type: "setGasto", payload: gasto.gasto })
-        dispatch({ type: "setTipo", payload: gasto.tipo })
-        dispatch({ type: "setDescripcion", payload: gasto.descripcion })
-        dispatch({ type: "setMonto", payload: gasto.monto })
-        dispatch({ type: "setFecha", payload: gasto.fecha })
-      }
+    const g = store.gastos.find((x) => x.id === Number(id));
+    if (g) {
+      dispatch({ type: "setGasto", payload: g.gasto });
+      dispatch({ type: "setTipo", payload: g.tipo });
+      dispatch({ type: "setDescripcion", payload: g.descripcion || "" });
+      dispatch({ type: "setMonto", payload: g.monto });
+      dispatch({ type: "setFecha", payload: g.fecha });
     }
-  }, [store.gastos])
+  }, [id, store.gastos]);
 
-  function saveGasto() {
-    const editado = {
-      "gasto": store.gasto,
-      "tipo": store.tipo,
-      "descripcion": store.descripcion,
-      "monto": store.monto,
-      "fecha": store.fecha
+  async function saveGasto(e) {
+    e.preventDefault();
+
+    const payload = {
+      gasto: store.gasto,
+      tipo: store.tipo,
+      descripcion: store.descripcion,
+      monto: store.monto,
+      fecha: store.fecha,
+    };
+
+    try {
+      await updateGasto(id, payload);
+      dispatch({ type: "limpiarForm" });
+      if (onSaved) onSaved();
+    } catch (err) {
+      console.error("Error editando gasto:", err);
+      alert(err.message || "Error editando gasto");
     }
-    //Acá hago el PUT//
-    EditarGastos(editado, id).then(data => {
-      console.log("Respuesta del servidor:", data);
-      dispatch({ type: 'limpiarForm' })
-    })
-
-    if (onSaved) onSaved();
-
-    //Acá hago el GET//
-    ObtenerGastos().then(data => {
-      dispatch({ type: "setGastos",
-        payload: data
-      });
-    })
-
   }
 
   return (
-    <form className="cuerpo" onSubmit={handleSubmit}>
-      <div className="modalR">
-        <input value={store.gasto} className="dados" placeholder="Gasto" onChange={e => dispatch({ type: "setGasto", payload: e.target.value })} />
-        <input value={store.tipo} placeholder="Tipo" onChange={e => dispatch({ type: "setTipo", payload: e.target.value })} />
-        <input value={store.descripcion} placeholder="Descripción" onChange={e => dispatch({ type: "setDescripcion", payload: e.target.value })} />
-        <div className="GranaDataInp">
-          <input value={store.monto} type="number" placeholder="Monto" onChange={e => dispatch({ type: "setMonto", payload: e.target.value })} />
-          <input value={store.fecha} className="dataInp" type="date" onChange={e => dispatch({ type: "setFecha", payload: e.target.value })} />
-        </div>
-        <button onClick={saveGasto}>Guardar</button>
+    <form className="modalR" onSubmit={saveGasto}>
+      <input
+        value={store.gasto}
+        className="dados"
+        placeholder="Gasto"
+        onChange={(e) => dispatch({ type: "setGasto", payload: e.target.value })}
+      />
+      <input
+        value={store.tipo}
+        placeholder="Tipo"
+        onChange={(e) => dispatch({ type: "setTipo", payload: e.target.value })}
+      />
+      <input
+        value={store.descripcion}
+        placeholder="Descripción"
+        onChange={(e) => dispatch({ type: "setDescripcion", payload: e.target.value })}
+      />
+
+      <div className="GranaDataInp">
+        <input
+          value={store.monto}
+          type="number"
+          placeholder="Monto"
+          onChange={(e) => dispatch({ type: "setMonto", payload: e.target.value })}
+        />
+        <input
+          value={store.fecha}
+          className="dataInp"
+          type="date"
+          onChange={(e) => dispatch({ type: "setFecha", payload: e.target.value })}
+        />
       </div>
+
+      <button type="submit">Guardar</button>
     </form>
   );
 }

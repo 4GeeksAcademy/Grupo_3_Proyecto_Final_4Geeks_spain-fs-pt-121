@@ -16,11 +16,12 @@ export default function Register() {
     e.preventDefault();
     setError("");
     setLoading(true);
+
     try {
-      await register(form);
-      navigate("/");
+      await register(form); 
+      navigate("/");       
     } catch (err) {
-      setError(err.message || "Error");
+      setError(err?.message || "Error");
     } finally {
       setLoading(false);
     }
@@ -29,7 +30,6 @@ export default function Register() {
   return (
     <div className="container py-4" style={{ maxWidth: 480 }}>
       <h2>Registro</h2>
-
       {error && <div className="alert alert-danger">{error}</div>}
 
       <form onSubmit={onSubmit}>

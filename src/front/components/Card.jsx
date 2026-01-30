@@ -1,62 +1,45 @@
 import { useState } from "react";
-import { BotonEditar, BotonEliminar } from "./Botoes.jsx";
+import { BotonEditar, BotonEliminar } from "./Botones.jsx";
 import Modal from "./Modal.jsx";
 import CuadroEditar from "./InputEditar.jsx";
-import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
-import { EliminarGastos } from "./ApiGastos.jsx";
+import { deleteGasto } from "../services/gastos.js";
 
-export default function CardGasto({ id, gasto, tipo, descripcion, monto, fecha }) {
+export default function CardGasto({ id, gasto, tipo, descripcion, monto, fecha, onChanged }) {
+  const [aberto, setAberto] = useState(false);
 
-  const { dispatch } = useGlobalReducer();
-  const [aberto, setAberto] = useState({ show: false, id: null });
-
-  const eliminar = () => {
-    console.log("ID_GASTO:", id);
-
-    EliminarGastos(id).then(data => {
-      dispatch({
-        type: "deleteGasto",
-        payload: id
-      });
-    });
-  };
+  async function onDelete() {
+    const ok = confirm("¿Seguro que quieres eliminar este gasto?");
+    if (!ok) return;
+    await deleteGasto(id);
+    if (onChanged) onChanged();
+  }
 
   return (
-    <div className="card">
-      <div className="carDG">
-        <div>
-          <h3>{gasto}</h3>
-
-          <div className="tipo1">
-            <p>{tipo}</p>
+    <div className="bodyCards">
+      <div className="card">
+        <div className="carDG">
+          <div>
+            <h3>{gasto}</h3>
+            <div className="tipo1">{tipo}</div>
+            {descripcion && <div className="descricao">{descripcion}</div>}
+            <div className="GranaData">
+              <div>💲 {monto}</div>
+              <div className="data">📅 {fecha}</div>
+            </div>
           </div>
 
-          <div className="descricao">
-            <p>{descripcion}</p>
-          </div>
-
-          <div className="GranaData">
-            <p>💲 {monto}</p>
-            <p className="data">📅 {fecha}</p>
-          </div>
+          <BotonEditar onClick={() => setAberto(true)} />
+          <BotonEliminar onClick={onDelete} />
         </div>
 
-        <div className="bot1">
-          <BotonEditar onClick={() => setAberto({ show: true, id: id })} />
-        </div>
-
-        <div className="bot2">
-          <BotonEliminar onClick={eliminar} />
-        </div>
-
-        <Modal
-          isOpen={aberto.show}
-          onClose={() => setAberto({ show: false, id: null })}
-        >
-          <h2 className="tituloR">Gasto</h2>
+        <Modal isOpen={aberto} onClose={() => setAberto(false)}>
+          <h2 className="tituloR">Editar Gasto</h2>
           <CuadroEditar
-            onSaved={() => setAberto({ show: false, id: null })}
-            id={aberto.id}
+            id={id}
+            onSaved={async () => {
+              setAberto(false);
+              if (onChanged) onChanged();
+            }}
           />
         </Modal>
       </div>

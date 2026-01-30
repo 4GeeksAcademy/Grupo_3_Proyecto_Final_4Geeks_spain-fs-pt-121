@@ -1,6 +1,6 @@
 # src/api/services/split_balance.py
 
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any
 
 
 def build_splits_for_expense(
@@ -10,8 +10,12 @@ def build_splits_for_expense(
     participants: List[int] | None = None,
     splits: List[Dict[str, Any]] | None = None
 ) -> List[Dict[str, Any]]:
-   
+
     split_method = (split_method or "equal").lower().strip()
+
+    
+    if split_method == "custom":
+        split_method = "amount"
 
     if total_amount is None:
         raise ValueError("total_amount es requerido")
@@ -19,11 +23,12 @@ def build_splits_for_expense(
     if total_amount <= 0:
         raise ValueError("total_amount debe ser > 0")
 
+    
     if split_method == "equal":
         if not isinstance(participants, list) or len(participants) < 1:
             raise ValueError("participants debe ser una lista con al menos 1 user_id")
 
-      
+        
         participants = list({int(p) for p in participants})
         per_person = round(total_amount / len(participants), 2)
 
@@ -38,6 +43,7 @@ def build_splits_for_expense(
             result.append({"user_id": uid, "amount": amt})
         return result
 
+    
     if split_method == "percent":
         if not isinstance(splits, list) or len(splits) < 1:
             raise ValueError("splits debe ser una lista")
@@ -55,7 +61,9 @@ def build_splits_for_expense(
             total_percent += pct
 
         total_percent = round(total_percent, 2)
-        if total_percent != 100.0:
+
+        
+        if abs(total_percent - 100.0) > 0.01:
             raise ValueError(f"La suma de percent debe ser 100. Ahora es {total_percent}")
 
         result = []
@@ -71,6 +79,7 @@ def build_splits_for_expense(
             result.append({"user_id": uid, "amount": amt})
         return result
 
+   
     if split_method == "amount":
         if not isinstance(splits, list) or len(splits) < 1:
             raise ValueError("splits debe ser una lista")
@@ -89,12 +98,15 @@ def build_splits_for_expense(
             total_split_amount += amt
 
         total_split_amount = round(total_split_amount, 2)
-        if total_split_amount != round(total_amount, 2):
-            raise ValueError(f"La suma de amounts debe ser {total_amount}. Ahora es {total_split_amount}")
+        total_amount_2 = round(total_amount, 2)
+
+       
+        if abs(total_split_amount - total_amount_2) > 0.01:
+            raise ValueError(f"La suma de amounts debe ser {total_amount_2}. Ahora es {total_split_amount}")
 
         return cleaned
 
-    raise ValueError("split_method inválido (usa: equal, percent, amount)")
+    raise ValueError("split_method inválido (usa: equal, percent, amount, custom)")
 
 
 def calculate_group_balances(
@@ -116,7 +128,7 @@ def calculate_group_balances(
         
         net[payer_id] = net.get(payer_id, 0.0) + total
 
-       
+        
         for sp in splits_by_expense.get(exp_id, []):
             uid = int(sp["user_id"])
             amt = float(sp["amount"])
