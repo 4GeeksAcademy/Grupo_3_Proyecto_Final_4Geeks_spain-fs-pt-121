@@ -1,6 +1,7 @@
 import { getToken, logout } from "./auth";
 
 function normalizeBase(url) {
+ console.log (url)
   if (!url) return "http://127.0.0.1:3001";
   return url.endsWith("/") ? url.slice(0, -1) : url;
 }
