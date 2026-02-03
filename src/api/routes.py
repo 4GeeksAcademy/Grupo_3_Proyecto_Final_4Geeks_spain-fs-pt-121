@@ -1,7 +1,7 @@
 import requests
+from sqlalchemy import func
 from datetime import datetime, date
 from flask import request, jsonify, Blueprint
-from flask_cors import CORS
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -17,7 +17,8 @@ api = Blueprint("api", __name__)
 
 fx_cache = FxRateCache(ttl_seconds=600)
 FRANKFURTER_LATEST_URL = "https://api.frankfurter.app/latest"
-
+COINGECKO_GLOBAL_URL = "https://api.coingecko.com/api/v3/global"
+COINGECKO_SIMPLE_PRICE_URL = "https://api.coingecko.com/api/v3/simple/price"
 
 
 def get_current_user():
@@ -66,10 +67,10 @@ def parse_iso_date(value):
         return None
 
 
-
 @api.route("/hello", methods=["GET"])
 def hello():
     return jsonify({"message": "Backend conectado ✅"}), 200
+
 
 
 @api.route("/auth/register", methods=["POST"])
@@ -126,6 +127,7 @@ def me():
     return jsonify({"user": user.serialize()}), 200
 
 
+
 @api.route("/fx/rates", methods=["GET"])
 def fx_rates():
     base = request.args.get("base", "USD").upper().strip()
@@ -175,6 +177,7 @@ def fx_convert():
     return jsonify({"from": from_currency, "to": to_currency, "amount": amount, "rate": rate, "result": result}), 200
 
 
+
 @api.route("/savings", methods=["POST"])
 @jwt_required()
 def create_saving():
@@ -212,6 +215,19 @@ def create_saving():
 
     db.session.commit()
     return jsonify({"saving_event": saving_event.serialize(), "credits_earned": credits}), 201
+
+
+@api.route("/savings/total", methods=["GET"])
+@jwt_required()
+def savings_total():
+    user_id, _ = get_current_user()
+    if not user_id:
+        return jsonify({"error": "token inválido"}), 401
+
+    rows = SavingEvent.query.filter_by(user_id=user_id).all()
+    total = round(sum(float(r.amount) for r in rows), 2)
+
+    return jsonify({"user_id": user_id, "total_savings": total, "currency": "USD"}), 200
 
 
 @api.route("/rewards/balance", methods=["GET"])
@@ -260,6 +276,7 @@ def finscore():
     return jsonify({"user_id": user_id, "score": total_credits, "level": level, "credits": total_credits}), 200
 
 
+
 @api.route("/groups", methods=["POST"])
 @jwt_required()
 def create_group():
@@ -297,6 +314,37 @@ def list_groups():
 
     groups = Group.query.filter(Group.id.in_(group_ids)).all()
     return jsonify({"user_id": user_id, "groups": [g.serialize() for g in groups]}), 200
+
+
+@api.route("/groups/<int:group_id>", methods=["DELETE"])
+@jwt_required()
+def delete_group(group_id):
+    user_id, _ = get_current_user()
+    if not user_id:
+        return jsonify({"error": "token inválido"}), 401
+
+    group = Group.query.get(group_id)
+    if not group:
+        return jsonify({"error": "group no existe"}), 404
+
+    if not require_group_owner(group_id, user_id):
+        return jsonify({"error": "Solo el owner puede eliminar el grupo"}), 403
+
+    expenses = SharedExpense.query.filter_by(group_id=group_id).all()
+    expense_ids = [e.id for e in expenses]
+
+    if expense_ids:
+        SharedExpenseSplit.query.filter(
+            SharedExpenseSplit.shared_expense_id.in_(expense_ids)
+        ).delete(synchronize_session=False)
+
+    SharedExpense.query.filter_by(group_id=group_id).delete(synchronize_session=False)
+    GroupMember.query.filter_by(group_id=group_id).delete(synchronize_session=False)
+
+    db.session.delete(group)
+    db.session.commit()
+
+    return jsonify({"ok": True, "deleted_group_id": group_id}), 200
 
 
 @api.route("/groups/<int:group_id>/members", methods=["POST"])
@@ -387,6 +435,10 @@ def create_shared_expense(group_id):
     total_amount = body.get("total_amount")
     currency = (body.get("currency") or "USD").upper().strip()
     split_method = (body.get("split_method") or "equal").lower().strip()
+
+    
+    if split_method == "custom":
+        split_method = "amount"
 
     if not title:
         return jsonify({"error": "title es requerido"}), 400
@@ -506,7 +558,127 @@ def group_balances(group_id):
         })
 
     result = calculate_group_balances(expenses=expenses, splits_by_expense=splits_by_expense)
-    return jsonify({"group_id": group_id, **result}), 200
+
+    members = GroupMember.query.filter_by(group_id=group_id).all()
+    members_payload = []
+    for m in members:
+        u = User.query.get(m.user_id)
+        members_payload.append({
+            "user_id": m.user_id,
+            "role": m.role,
+            "email": u.email if u else None,
+            "username": u.username if u else None
+        })
+
+    return jsonify({"group_id": group_id, "members": members_payload, **result}), 200
+
+
+@api.route("/groups/<int:group_id>/shared-expenses/<int:expense_id>", methods=["DELETE"])
+@jwt_required()
+def delete_shared_expense(group_id, expense_id):
+    user_id, _ = get_current_user()
+    if not user_id:
+        return jsonify({"error": "token inválido"}), 401
+
+    group = Group.query.get(group_id)
+    if not group:
+        return jsonify({"error": "group no existe"}), 404
+
+    if not require_group_member(group_id, user_id):
+        return jsonify({"error": "No perteneces a este grupo"}), 403
+
+    expense = SharedExpense.query.filter_by(id=expense_id, group_id=group_id).first()
+    if not expense:
+        return jsonify({"error": "shared_expense no existe"}), 404
+
+    if not can_manage_shared_expense(expense, user_id):
+        return jsonify({"error": "No tienes permisos para borrar este gasto"}), 403
+
+    SharedExpenseSplit.query.filter_by(shared_expense_id=expense.id).delete(synchronize_session=False)
+    db.session.delete(expense)
+    db.session.commit()
+
+    return jsonify({"ok": True, "deleted_id": expense_id}), 200
+
+
+@api.route("/groups/<int:group_id>/shared-expenses/<int:expense_id>", methods=["PUT"])
+@jwt_required()
+def update_shared_expense(group_id, expense_id):
+    body = request.get_json() or {}
+    user_id, _ = get_current_user()
+    if not user_id:
+        return jsonify({"error": "token inválido"}), 401
+
+    group = Group.query.get(group_id)
+    if not group:
+        return jsonify({"error": "group no existe"}), 404
+
+    if not require_group_member(group_id, user_id):
+        return jsonify({"error": "No perteneces a este grupo"}), 403
+
+    expense = SharedExpense.query.filter_by(id=expense_id, group_id=group_id).first()
+    if not expense:
+        return jsonify({"error": "shared_expense no existe"}), 404
+
+    if not can_manage_shared_expense(expense, user_id):
+        return jsonify({"error": "No tienes permisos para editar este gasto"}), 403
+
+    title = (body.get("title") or expense.title).strip()
+    currency = (body.get("currency") or expense.currency).upper().strip()
+    split_method = (body.get("split_method") or "equal").lower().strip()
+
+    if split_method == "custom":
+        split_method = "amount"
+
+    total_amount_raw = body.get("total_amount", expense.total_amount)
+
+    if not title:
+        return jsonify({"error": "title es requerido"}), 400
+
+    try:
+        total_amount = float(total_amount_raw)
+        if total_amount <= 0:
+            return jsonify({"error": "total_amount debe ser > 0"}), 400
+    except (TypeError, ValueError):
+        return jsonify({"error": "total_amount debe ser un número"}), 400
+
+    try:
+        splits_data = build_splits_for_expense(
+            total_amount=total_amount,
+            split_method=split_method,
+            participants=body.get("participants"),
+            splits=body.get("splits"),
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    split_user_ids = list({int(s["user_id"]) for s in splits_data})
+    members_count = GroupMember.query.filter(
+        GroupMember.group_id == group_id,
+        GroupMember.user_id.in_(split_user_ids)
+    ).count()
+    if members_count != len(split_user_ids):
+        return jsonify({"error": "Uno o más user_id del split no pertenecen al grupo"}), 400
+
+    expense.title = title
+    expense.total_amount = total_amount
+    expense.currency = currency
+
+    SharedExpenseSplit.query.filter_by(shared_expense_id=expense.id).delete(synchronize_session=False)
+    new_splits = [
+        SharedExpenseSplit(
+            shared_expense_id=expense.id,
+            user_id=int(s["user_id"]),
+            amount=float(s["amount"]),
+        ) for s in splits_data
+    ]
+    db.session.add_all(new_splits)
+    db.session.commit()
+
+    return jsonify({
+        "shared_expense": expense.serialize(),
+        "splits": [sp.serialize() for sp in new_splits]
+    }), 200
 
 
 
@@ -627,3 +799,196 @@ def update_gasto(gasto_id):
 
     db.session.commit()
     return jsonify(gasto.serialize()), 200
+
+# actualizo nueva api
+
+def month_start_utc(dt: datetime):
+    return dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+@api.route("/market", methods=["GET"])
+@jwt_required()
+def market():
+  
+   
+    user_id, _ = get_current_user()
+    if not user_id:
+        return jsonify({"error": "token inválido"}), 401
+
+    out = {"source": "live", "fx": {}, "crypto": {}}
+
+   
+    try:
+        r = requests.get(FRANKFURTER_LATEST_URL, params={"base": "USD"}, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+        usd_eur = data.get("rates", {}).get("EUR")
+        out["fx"]["usd_eur"] = round(float(usd_eur), 4) if usd_eur else None
+        
+        out["fx"]["eur_usd"] = round(1 / float(usd_eur), 4) if usd_eur else None
+    except Exception as e:
+        out["fx"]["error"] = str(e)
+
+    
+    try:
+        params = {
+            "ids": "bitcoin,ethereum",
+            "vs_currencies": "usd",
+            "include_24hr_change": "true",
+        }
+        r = requests.get(COINGECKO_SIMPLE_PRICE_URL, params=params, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+
+        btc = data.get("bitcoin", {})
+        eth = data.get("ethereum", {})
+        out["crypto"]["btc_usd"] = round(float(btc.get("usd", 0)), 2) if btc.get("usd") else None
+        out["crypto"]["btc_24h"] = round(float(btc.get("usd_24h_change", 0)), 2) if "usd_24h_change" in btc else None
+        out["crypto"]["eth_usd"] = round(float(eth.get("usd", 0)), 2) if eth.get("usd") else None
+        out["crypto"]["eth_24h"] = round(float(eth.get("usd_24h_change", 0)), 2) if "usd_24h_change" in eth else None
+
+       
+        try:
+            rg = requests.get(COINGECKO_GLOBAL_URL, timeout=10)
+            rg.raise_for_status()
+            g = rg.json().get("data", {})
+            out["crypto"]["btc_dominance"] = round(float(g.get("market_cap_percentage", {}).get("btc", 0)), 2)
+        except Exception:
+            pass
+
+    except Exception as e:
+        out["crypto"]["error"] = str(e)
+
+    return jsonify(out), 200
+
+
+@api.route("/dashboard", methods=["GET"])
+@jwt_required()
+def dashboard():
+   
+    user_id, _ = get_current_user()
+    if not user_id:
+        return jsonify({"error": "token inválido"}), 401
+
+    now = datetime.utcnow()
+    start_month = month_start_utc(now)
+
+    
+    gastos_total = db.session.query(func.coalesce(func.sum(Gasto.monto), 0.0)).filter(
+        Gasto.user_id == user_id
+    ).scalar()
+
+    
+    start_month_date = start_month.date()
+
+    gastos_mes = db.session.query(func.coalesce(func.sum(Gasto.monto), 0.0)).filter(
+        Gasto.user_id == user_id,
+        Gasto.fecha >= start_month_date
+    ).scalar()
+
+    
+    ahorros_total = db.session.query(func.coalesce(func.sum(SavingEvent.amount), 0.0)).filter(
+        SavingEvent.user_id == user_id
+    ).scalar()
+
+    ahorros_mes = db.session.query(func.coalesce(func.sum(SavingEvent.amount), 0.0)).filter(
+        SavingEvent.user_id == user_id,
+        SavingEvent.created_at >= start_month  
+    ).scalar()
+
+    
+    rows = RewardLedger.query.filter_by(user_id=user_id).all()
+    total_credits = sum(r.credits_delta for r in rows)
+
+    if total_credits < 50:
+        level = 1
+    elif total_credits < 150:
+        level = 2
+    elif total_credits < 300:
+        level = 3
+    else:
+        level = 4
+
+    
+    gastos_tipo_rows = db.session.query(
+        Gasto.tipo,
+        func.coalesce(func.sum(Gasto.monto), 0.0)
+    ).filter(
+        Gasto.user_id == user_id
+    ).group_by(Gasto.tipo).all()
+
+    gastos_por_tipo = [{"tipo": t or "Otros", "total": float(s)} for (t, s) in gastos_tipo_rows]
+
+    
+    last_rows = Gasto.query.filter_by(user_id=user_id).order_by(Gasto.fecha.desc()).limit(500).all()
+    bucket = {}
+    for g in last_rows:
+        if not g.fecha:
+            continue
+        key = g.fecha.strftime("%Y-%m")
+        bucket[key] = bucket.get(key, 0.0) + float(g.monto or 0.0)
+
+    months_sorted = sorted(bucket.keys())[-6:]
+    gastos_por_mes = [{"month": m, "total": round(bucket[m], 2)} for m in months_sorted]
+
+    
+    memberships = GroupMember.query.filter_by(user_id=user_id).all()
+    group_ids = [m.group_id for m in memberships]
+    groups_out = []
+
+    if group_ids:
+        groups = Group.query.filter(Group.id.in_(group_ids)).all()
+
+        for g in groups:
+           
+            expenses_rows = SharedExpense.query.filter_by(group_id=g.id).all()
+            expenses = [{"id": e.id, "created_by": e.created_by, "total_amount": float(e.total_amount)} for e in expenses_rows]
+            expense_ids = [e["id"] for e in expenses]
+
+            splits_rows = []
+            if expense_ids:
+                splits_rows = SharedExpenseSplit.query.filter(
+                    SharedExpenseSplit.shared_expense_id.in_(expense_ids)
+                ).all()
+
+            splits_by_expense = {}
+            for s in splits_rows:
+                splits_by_expense.setdefault(s.shared_expense_id, []).append({
+                    "user_id": s.user_id,
+                    "amount": float(s.amount),
+                })
+
+            result = calculate_group_balances(expenses=expenses, splits_by_expense=splits_by_expense)
+            net_map = result.get("net", {})  # keys pueden ser str
+            net_me = net_map.get(str(user_id), 0) if isinstance(net_map, dict) else 0
+
+            
+            suggested = None
+            for tr in result.get("transfers", []):
+                if tr.get("from_user_id") == user_id or tr.get("to_user_id") == user_id:
+                    suggested = tr
+                    break
+
+            groups_out.append({
+                "group_id": g.id,
+                "name": g.name,
+                "net_me": float(net_me),
+                "suggested_transfer": suggested
+            })
+
+    payload = {
+        "totals": {
+            "gastos_total": float(gastos_total or 0),
+            "gastos_mes": float(gastos_mes or 0),
+            "ahorros_total": float(ahorros_total or 0),
+            "ahorros_mes": float(ahorros_mes or 0),
+            "credits": int(total_credits),
+            "finscore_level": int(level),
+        },
+        "groups": groups_out,
+        "charts": {
+            "gastos_por_tipo": gastos_por_tipo,
+            "gastos_por_mes": gastos_por_mes,
+        }
+    }
+
+    return jsonify(payload), 200

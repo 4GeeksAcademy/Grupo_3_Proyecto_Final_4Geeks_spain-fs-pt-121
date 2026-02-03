@@ -1,99 +1,113 @@
-
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { createGroup, listGroups } from "../services/groups";
-import { isLoggedIn } from "../services/auth";
+import { apiGet, apiPost, apiDelete } from "../services/api";
+import { useNavigate } from "react-router-dom";
 
 export default function Groups() {
-  const logged = isLoggedIn();
-
   const [name, setName] = useState("");
-  const [rows, setRows] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   async function load() {
     setError("");
-    setLoading(true);
     try {
-      const data = await listGroups();
-      setRows(data.groups || []);
+      const data = await apiGet("/api/groups");
+      setGroups(data.groups || []);
     } catch (e) {
       setError(e.message || "Error");
+    }
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function onCreate() {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+
+    setLoading(true);
+    setError("");
+    try {
+      await apiPost("/api/groups", { name: trimmed });
+      setName("");
+      await load();
+    } catch (e) {
+      setError(e.message || "No se pudo crear el grupo");
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => {
-    if (logged) load();
-    else setLoading(false);
-  }, [logged]);
-
-  async function onCreate(e) {
-    e.preventDefault();
-    setError("");
-
-    if (!name.trim()) {
-      setError("Pon un nombre para el grupo");
-      return;
-    }
-
-    try {
-      await createGroup({ name: name.trim() });
-      setName("");
-      await load();
-    } catch (e) {
-      setError(e.message || "Error creando grupo");
-    }
-  }
-
-  if (!logged) {
-    return (
-      <div className="container py-4">
-        <div className="alert alert-info">Inicia sesión para usar grupos.</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="container py-4">
-      <h2 className="app-title mb-1">Mis Grupos</h2>
-      <p className="text-muted">Crea un grupo y entra para dividir gastos.</p>
+    <div className="container py-4" style={{ maxWidth: 900 }}>
+      <h2 className="mb-3">Mis grupos</h2>
 
       {error && <div className="alert alert-danger">{error}</div>}
-      {loading && <div className="text-muted">Cargando...</div>}
 
-      <div className="card app-card p-3 mb-3">
-        <h5 className="mb-2">Crear grupo</h5>
-        <form onSubmit={onCreate} className="d-flex gap-2">
-          <input
-            className="form-control"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Ej: Viaje Madrid"
-          />
-          <button className="btn btn-primary">Crear</button>
-        </form>
+      <div className="card shadow-sm mb-4">
+        <div className="card-body">
+          <h5 className="mb-3">Crear grupo</h5>
+          <div className="d-flex gap-2">
+            <input
+              className="form-control"
+              placeholder="Ej: Viaje Madrid"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <button className="btn btn-success" onClick={onCreate} disabled={loading}>
+              {loading ? "Creando..." : "Crear"}
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className="card app-card p-3">
-        <h5 className="mb-2">Mis grupos</h5>
+      <div className="card shadow-sm">
+        <div className="card-body">
+          <h5 className="mb-3">Mis grupos</h5>
 
-        {rows.length === 0 ? (
-          <div className="text-muted">Aún no tienes grupos.</div>
-        ) : (
-          <div className="list-group">
-            {rows.map((g) => (
-              <Link key={g.id} to={`/groups/${g.id}`} className="list-group-item list-group-item-action">
-                <div className="d-flex justify-content-between">
-                  <span className="fw-semibold">{g.name}</span>
-                  <span className="text-muted">#{g.id}</span>
+          {groups.length === 0 ? (
+            <div className="text-muted">No tienes grupos aún.</div>
+          ) : (
+            <div className="d-flex flex-column gap-2">
+              {groups.map((g) => (
+                <div
+                  key={g.id}
+                  className="d-flex align-items-center justify-content-between border rounded px-3 py-2"
+                  role="button"
+                  onClick={() => navigate(`/groups/${g.id}`)}
+                >
+                  <div className="fw-semibold">{g.name}</div>
+
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="text-muted">#{g.id}</span>
+
+                    <button
+                      className="btn btn-outline-danger btn-sm"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const ok = confirm(
+                          `¿Eliminar el grupo "${g.name}"? Esto borrará gastos y miembros del grupo.`
+                        );
+                        if (!ok) return;
+
+                        try {
+                          await apiDelete(`/api/groups/${g.id}`);
+                          await load();
+                        } catch (err) {
+                          alert(err.message || "No se pudo eliminar el grupo");
+                        }
+                      }}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
                 </div>
-              </Link>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -16,12 +16,11 @@ export default function Register() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
-      await register(form); 
-      navigate("/");       
+      await register(form);
+      navigate("/"); // o "/login" si prefieres
     } catch (err) {
-      setError(err?.message || "Error");
+      setError(err.message || "Error");
     } finally {
       setLoading(false);
     }

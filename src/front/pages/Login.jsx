@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { login } from "../services/authApi";
 
 export default function Login() {
@@ -16,12 +16,11 @@ export default function Login() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
-      await login(form); 
-      navigate("/");     
+      await login(form);
+      navigate("/"); 
     } catch (err) {
-      setError(err?.message || "Error");
+      setError(err.message || "Error");
     } finally {
       setLoading(false);
     }
@@ -61,12 +60,6 @@ export default function Login() {
           {loading ? "Entrando..." : "Entrar"}
         </button>
       </form>
-
-      <div className="mt-3">
-        <small>
-          ¿No tienes cuenta? <Link to="/register">Regístrate</Link>
-        </small>
-      </div>
     </div>
   );
 }
