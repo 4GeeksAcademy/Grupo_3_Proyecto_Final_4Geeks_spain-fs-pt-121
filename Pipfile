@@ -22,6 +22,7 @@ sqlalchemy = "*"
 requests = "*"
 flask-jwt-extended = "*"
 werkzeug = "*"
+flask-mail = "*"
 
 [requires]
 python_version = "3.13"

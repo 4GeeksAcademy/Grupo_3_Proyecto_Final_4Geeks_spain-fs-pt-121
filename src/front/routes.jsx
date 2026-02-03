@@ -10,6 +10,8 @@ import { Divisas } from "./pages/Divisas";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import  Gastos  from "./pages/Gastos";
+import RecuperarContrasena from "./pages/Recuperar_Contrasena";
+import Resetear from "./pages/Resetear_Contrasena";
 
 
 function ComingSoon({ title }) {
@@ -28,6 +30,8 @@ export const router = createBrowserRouter(
       <Route path="/divisas" element={<Divisas />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/recuperar" element={<RecuperarContrasena />} />
+      <Route path="/resetear" element={<Resetear />} />
 
       <Route path="/gastos" element={<Gastos />} />
       <Route path="/finscore" element={<ComingSoon title="FinScore" />} />

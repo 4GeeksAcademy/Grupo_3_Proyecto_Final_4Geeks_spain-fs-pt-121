@@ -2,28 +2,33 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 import os
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory
+from flask_mail import Mail, Message
 from flask_migrate import Migrate
 from api.utils import APIException, generate_sitemap
-from api.models import db
+from api.models import db, User
 from api.routes import api
 from api.admin import setup_admin
 from api.commands import setup_commands
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager
+from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required
+
+
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app)
 
 ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
 
-static_file_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../dist/")
-app = Flask(__name__)
+static_file_dir = os.path.join(os.path.dirname(
+    os.path.realpath(__file__)), "../dist/")
+
 app.url_map.strict_slashes = False
 
 
 db_url = os.getenv("DATABASE_URL")
 if db_url is not None:
-    app.config["SQLALCHEMY_DATABASE_URI"] = db_url.replace("postgres://", "postgresql://")
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url.replace(
+        "postgres://", "postgresql://")
 else:
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/test.db"
 
@@ -49,6 +54,45 @@ app.register_blueprint(api, url_prefix="/api")
 def handle_invalid_usage(error):
     return jsonify(error.to_dict()), error.status_code
 
+
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USE_SSL'] = True
+app.config['MAIL_USERNAME'] = "rf.control.financiero@gmail.com"
+app.config['MAIL_PASSWORD'] = "nvqi rrqj ivru scqn"
+
+mail = Mail(app)
+
+app.config["JWT_SECRET_KEY"] = "Cl@aveSecr&etaDelAdmini$strad0r!"
+jwt = JWTManager(app)
+
+@app.route("/reset-contrasena", methods=["POST"])
+def reset_contrasena():
+    email = request.json.get('email', None)
+    
+    token = create_access_token(identity=email)
+
+    msg = Message(subject='Recuperar tu Contraseña', sender='rf.control.financiero@gmail.com', recipients=[email])
+    msg.body = 'Dale click para resetear la contraseña:  ' + os.getenv("VITE_FRONTEND_URL") + '/resetear?token=' + token
+    mail.send(msg)
+
+    return jsonify({"success": True}), 200
+
+@app.route("/change-contrasena", methods=["POST"])
+@jwt_required()
+def change_contrasena():
+    password = request.json.get("password, none")
+    email = get_jwt_identity()
+
+    user = User.query.filter_by(email=email).first()
+    if user is None:
+        return jsonify({'msg': 'Usuario no existe!'})
+
+    user.password = password
+    db.session.add(user)
+    db.session.commit()
+
+    return jsonify({"success": True}), 200
 
 @app.route("/")
 def sitemap():

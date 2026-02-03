@@ -60,6 +60,7 @@ export default function Login() {
         <button className="btn btn-primary w-100" disabled={loading}>
           {loading ? "Entrando..." : "Entrar"}
         </button>
+        <a href="/recuperar">alzheimer de la contraseña?</a>
       </form>
     </div>
   );
