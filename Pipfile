@@ -21,6 +21,7 @@ sqlalchemy = "*"
 requests = "*"
 werkzeug = "*"
 tomli="*"
+
 flask-mail = "*"
 flask-cors = "*"
 flask-jwt-extended = "*"
