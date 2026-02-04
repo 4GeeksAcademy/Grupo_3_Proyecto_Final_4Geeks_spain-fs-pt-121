@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { register } from "../services/authApi";
 
 export default function RecuperarContrasena() {
-  const [correoEletronico, setCorreoEletronico] = useState("")
+  const [correoEletronico, setCorreoEletronico] = useState("");
 
   function enviarCorreo() {
     fetch(`${import.meta.env.VITE_BACKEND_URL}/reset-contrasena`, {

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 3688a51b7768
+Revision ID: 596dd5e1f638
 Revises: 
-Create Date: 2026-02-02 19:00:46.208175
+Create Date: 2026-02-04 10:18:38.724553
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '3688a51b7768'
+revision = '596dd5e1f638'
 down_revision = None
 branch_labels = None
 depends_on = None

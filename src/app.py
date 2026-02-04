@@ -12,6 +12,7 @@ from api.admin import setup_admin
 from api.commands import setup_commands
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 app = Flask(__name__)
@@ -69,8 +70,10 @@ jwt = JWTManager(app)
 @app.route("/reset-contrasena", methods=["POST"])
 def reset_contrasena():
     email = request.json.get('email', None)
-    
-    token = create_access_token(identity=email)
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"msg": "Email não encontrado"}), 404
+    token = create_access_token(identity=str(user.id))
 
     msg = Message(subject='Recuperar tu Contraseña', sender='rf.control.financiero@gmail.com', recipients=[email])
     msg.body = 'Dale click para resetear la contraseña:  ' + os.getenv("VITE_FRONTEND_URL") + '/resetear?token=' + token
@@ -81,15 +84,18 @@ def reset_contrasena():
 @app.route("/change-contrasena", methods=["POST"])
 @jwt_required()
 def change_contrasena():
-    password = request.json.get("password, none")
-    email = get_jwt_identity()
+    body = request.get_json()
+    new_password = body.get("password")
+    
+    user_identity = get_jwt_identity()
 
-    user = User.query.filter_by(email=email).first()
+    user = User.query.get(user_identity) 
+    
     if user is None:
-        return jsonify({'msg': 'Usuario no existe!'})
+        return jsonify({'msg': 'Usuario no existe!'}), 404
 
-    user.password = password
-    db.session.add(user)
+    user.password_hash = generate_password_hash(new_password)
+    
     db.session.commit()
 
     return jsonify({"success": True}), 200

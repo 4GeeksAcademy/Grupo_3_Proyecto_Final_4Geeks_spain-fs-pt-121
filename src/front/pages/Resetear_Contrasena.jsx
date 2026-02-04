@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 export default function Resetear() {
   const [params] = useSearchParams()
+  const navigate = useNavigate();
   const [password, setPassword] = useState("")
   const [repite, setRepite] = useState("")
 
@@ -24,8 +25,9 @@ export default function Resetear() {
     })
       .then(response => response.json())
       .then(data => {
-        if (data && data.sucess) {
-          alert('Contraseñacambiada correctamente!')
+        if (data && data.success) {
+          alert('Contraseña cambiada correctamente!');
+          navigate("/login");
         }
         else alert('Error al cambiar contraseña!')
       })
@@ -44,7 +46,6 @@ export default function Resetear() {
             className="form-control"
             name="Nueva contraseña"
             type="password"
-            autoComplete="new-password"
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
@@ -55,7 +56,6 @@ export default function Resetear() {
             className="form-control"
             name="Nueva contraseña"
             type="password"
-            autoComplete="new-password"
             onChange={(e) => setRepite(e.target.value)}
           />
         </div>

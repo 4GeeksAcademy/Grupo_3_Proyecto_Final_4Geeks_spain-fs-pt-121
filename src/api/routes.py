@@ -3,7 +3,7 @@ from datetime import datetime
 
 from flask import request, jsonify, Blueprint
 from flask_cors import CORS
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, decode_token
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from api.models import (
@@ -80,7 +80,7 @@ def register():
     db.session.add(user)
     db.session.commit()
 
-    token = create_access_token(identity=user.id)
+    token = create_access_token(identity=str(user.id))
     return jsonify({"user": user.serialize(), "token": token}), 201
 
 
@@ -97,7 +97,7 @@ def login():
     if not user or not check_password_hash(user.password_hash, password):
         return jsonify({"error": "credenciales inválidas"}), 401
 
-    token = create_access_token(identity=user.id)
+    token = create_access_token(identity=str(user.id))
     return jsonify({"user": user.serialize(), "token": token}), 200
 
 
